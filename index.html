@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F3EEE8">
+<title>خريطة الأعمال الموثّقة · نظام الأعمال الموحد</title>
+<meta name="description" content="تصور توضيحي: كل الجهات والمقاولين وأعمالهم الميدانية موثّقة ومرتبطة بالأمانة على خريطة واحدة.">
+<style>
+@font-face{font-family:Almarai;src:url(fonts/Almarai-Regular.ttf);font-weight:400}
+@font-face{font-family:Almarai;src:url(fonts/Almarai-Bold.ttf);font-weight:700}
+@font-face{font-family:Almarai;src:url(fonts/Almarai-ExtraBold.ttf);font-weight:800}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#F3EEE8;font-family:Almarai,system-ui,sans-serif;color:#15201E}
+#stage{position:fixed;inset:0;overflow:hidden;touch-action:none;cursor:grab}
+#stage.drag{cursor:grabbing}
+#world{position:absolute;left:0;top:0;width:1672px;height:941px;transform-origin:0 0;will-change:transform}
+#world>img{width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.node{position:absolute;border-radius:50%;border:0;background:transparent;cursor:pointer;transform:translate(-50%,-50%)}
+.node:after{content:"";position:absolute;inset:-5px;border-radius:50%;border:3px solid #1B5E3F;opacity:0;transform:scale(.9);transition:.2s}
+.node.sel:after{opacity:1;transform:scale(1)}
+.lbl{position:absolute;transform:translate(-50%,0);white-space:nowrap;background:#fff;border:1px solid #E4DED6;border-radius:8px;
+ padding:3px 8px;font-size:13px;font-weight:700;color:#15201E;pointer-events:none;opacity:0;transition:opacity .2s;box-shadow:0 2px 6px rgba(21,32,30,.08)}
+body.names .lbl{opacity:1}
+.hub{position:absolute;border-radius:50%;border:0;background:transparent;cursor:pointer;transform:translate(-50%,-50%)}
+
+.top{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 12px) 14px 12px;display:flex;align-items:center;gap:10px;
+ background:linear-gradient(#F3EEE8 55%,rgba(243,238,232,0));pointer-events:none;z-index:5}
+.top>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand img{height:34px;flex:none}
+.brand div{min-width:0}
+.brand small{display:block;font-size:11.5px;color:#1E7D4F;font-weight:700}
+.brand h1{font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tg{margin-right:auto;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #E4DED6;border-radius:999px;padding:7px 8px 7px 14px;
+ font:700 13px Almarai;color:#15201E;cursor:pointer;box-shadow:0 2px 10px rgba(21,32,30,.06);flex:none}
+.tg i{width:34px;height:20px;border-radius:10px;background:#D9D4CC;position:relative;transition:.2s;display:block}
+.tg i:after{content:"";position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s}
+body.names .tg i{background:#1E7D4F}
+body.names .tg i:after{right:16px}
+
+.zoom{position:fixed;left:14px;bottom:calc(env(safe-area-inset-bottom) + 16px);display:flex;flex-direction:column;gap:8px;z-index:4}
+.zoom button{width:42px;height:42px;border-radius:12px;border:1px solid #E4DED6;background:#fff;font:700 20px Almarai;color:#15201E;cursor:pointer;box-shadow:0 2px 10px rgba(21,32,30,.06)}
+.zoom button svg{width:18px;height:18px;vertical-align:middle}
+.hint{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 44px);background:#15201E;color:#fff;border-radius:999px;
+ padding:10px 18px;font-size:13px;z-index:4;transition:opacity .4s;white-space:nowrap}
+.note{position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom) + 14px);font-size:11px;color:#7C7770;z-index:3}
+
+.sheet{position:fixed;z-index:6;background:#fff;box-shadow:0 -10px 40px rgba(21,32,30,.16);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+ left:0;right:0;bottom:0;border-radius:24px 24px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 22px);transform:translateY(110%)}
+.sheet.open{transform:none}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:#E4DED6;margin:0 auto 14px}
+.sheet .x{position:absolute;top:14px;left:14px;width:34px;height:34px;border-radius:50%;border:0;background:#F3EEE8;font:700 18px Almarai;color:#5B5650;cursor:pointer}
+.sh-head{display:flex;align-items:center;gap:14px}
+.sh-logo{width:64px;height:64px;border-radius:50%;border:1px solid #E4DED6;display:grid;place-items:center;flex:none;background:#fff;overflow:hidden}
+.sh-logo img{max-width:44px;max-height:40px}
+.sh-logo.amana{background:#1B5E3F;border:0;color:#fff;font-weight:800;font-size:13px}
+.sh-head small{font-size:12.5px;color:#7C7770;font-weight:700}
+.sh-head h2{font-size:19px;font-weight:800;margin-top:3px;line-height:1.35}
+.kv{margin-top:16px;display:grid;grid-template-columns:auto 1fr;gap:9px 18px;font-size:14px}
+.kv dt{color:#7C7770}.kv dd{font-weight:700}
+.st{margin-top:16px;padding-top:14px;border-top:1px solid #F0EBE4;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#1E7D4F}
+.st i{width:9px;height:9px;border-radius:50%;background:#1E7D4F;display:block}
+.bar{margin-top:10px;height:6px;border-radius:3px;background:#F0EBE4;overflow:hidden}.bar i{display:block;height:100%;background:#1E7D4F}
+.ents{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ents div{background:#F7F4F0;border-radius:12px;padding:10px 12px;font-size:13px;display:flex;justify-content:space-between}
+.ents b{font-weight:800}
+@media (min-width:760px){
+ .sheet{left:auto;right:20px;bottom:20px;width:380px;border-radius:22px;padding:22px 22px 22px;transform:translateX(130%);box-shadow:0 18px 50px rgba(21,32,30,.18)}
+ .sheet .grab{display:none}
+ .top{padding:18px 22px}
+ .brand h1{font-size:20px}
+ .note{right:auto;left:70px;bottom:22px}
+}
+</style>
+</head>
+<body>
+<div id="stage"><div id="world"><img src="map.jpg" alt="خريطة الأعمال الموثّقة المرتبطة بالأمانة"></div></div>
+
+<header class="top">
+  <div class="brand"><img src="logo.png" alt=""><div><small>نظام الأعمال الموحد</small><h1>خريطة الأعمال الموثّقة</h1></div></div>
+  <button class="tg" id="tg" aria-pressed="false">الأسماء<i></i></button>
+</header>
+<div class="zoom">
+  <button id="zin" aria-label="تكبير">+</button>
+  <button id="zout" aria-label="تصغير">−</button>
+  <button id="zfit" aria-label="إعادة الضبط"><svg viewBox="0 0 24 24" fill="none" stroke="#15201E" stroke-width="2"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</div>
+<div class="hint" id="hint">اضغط على أي شعار لعرض تفاصيل العمل</div>
+<div class="note">تصور توضيحي · البيانات افتراضية</div>
+
+<section class="sheet" id="sheet" aria-live="polite"><div class="grab"></div><button class="x" id="x" aria-label="إغلاق">×</button><div id="sc"></div></section>
+
+<script>
+const MW=1672, MH=941, HUB={x:835,y:480,r:86};
+const CO={
+ stc:{n:'stc',logo:'logos/stc.svg',cons:['مؤسسة الوصل للاتصالات','شركة نطاق للشبكات','مؤسسة الربط الفني'],works:['تمديد ألياف بصرية','حفرية توصيل مشترك','تركيب كبينة اتصالات']},
+ mob:{n:'موبايلي',logo:'logos/mobily.svg',cons:['شركة المسار الحديث','مؤسسة جسور الاتصال'],works:['تمديد ألياف بصرية','حفرية توصيل مشترك','تركيب كبينة اتصالات']},
+ zain:{n:'زين',logo:'logos/zain_c.png',cons:['مؤسسة أفق الإنجاز','شركة مدى للمقاولات'],works:['تمديد ألياف بصرية','تركيب كبينة اتصالات','حفرية توصيل مشترك']},
+ se:{n:'السعودية للطاقة',logo:'logos/se_ar.webp',cons:['شركة الرواد للطاقة','مؤسسة المدار الكهربائية','شركة قدرة للمقاولات'],works:['تمديد كابل جهد منخفض','تركيب محطة توزيع','حفرية توصيل عداد']},
+ nwc:{n:'شركة المياه الوطنية',logo:'logos/nwc_c.png',cons:['مؤسسة ينابيع للمقاولات','شركة رافد للمياه','مؤسسة سقيا الهندسية'],works:['تمديد خط مياه','إصلاح تسرب','توصيلة منزلية']}
+};
+const RAW=[[251,173,42,'stc'],[932,171,44,'se'],[1361,133,38,'stc'],[405,199,43,'nwc'],[563,181,42,'mob'],[692,227,39,'zain'],[1096,203,35,'zain'],[1234,195,43,'mob'],[226,299,42,'se'],[1538,275,46,'nwc'],[1364,313,38,'zain'],[368,362,39,'stc'],[491,398,42,'nwc'],[244,476,41,'mob'],[387,477,37,'zain'],[1163,465,37,'zain'],[1333,461,42,'stc'],[1467,502,43,'se'],[425,587,43,'se'],[1287,595,45,'nwc'],[286,634,38,'stc'],[1468,625,43,'mob'],[405,699,43,'nwc'],[595,682,40,'mob'],[1088,675,40,'se'],[1259,689,42,'stc'],[296,796,36,'zain'],[443,835,39,'stc'],[587,839,43,'nwc'],[1043,838,38,'zain'],[1191,839,37,'stc'],[1370,819,42,'nwc'],[746,843,39,'se'],[904,845,41,'mob']];
+const cnt={};
+const NODES=RAW.map(([x,y,r,k],i)=>{ const c=CO[k]; const j=(cnt[k]=(cnt[k]||0)+1)-1;
+  const h=7+((i*37)%5), m=(i*13)%60; const p=35+((i*29)%61);
+  return {i,x,y,r:Math.max(r,40),k,co:c.n,logo:c.logo,con:c.cons[j%c.cons.length],work:c.works[(j+i)%c.works.length],
+    permit:'1447-'+String(31000+i*137).padStart(5,'0'),visit:`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`,photos:6+(i*7)%15,prog:p}; });
+
+const world=document.getElementById('world'), stage=document.getElementById('stage'), sheet=document.getElementById('sheet'), sc=document.getElementById('sc');
+// nodes + labels
+NODES.forEach(n=>{ const b=document.createElement('button'); b.className='node'; b.setAttribute('aria-label',n.co+' · '+n.con);
+  Object.assign(b.style,{left:n.x+'px',top:n.y+'px',width:n.r*2+'px',height:n.r*2+'px'}); b.dataset.i=n.i; world.appendChild(b); n.el=b;
+  const l=document.createElement('div'); l.className='lbl'; l.textContent=n.con; Object.assign(l.style,{left:n.x+'px',top:(n.y+n.r+4)+'px'}); world.appendChild(l); });
+const hub=document.createElement('button'); hub.className='hub'; hub.setAttribute('aria-label','الأمانة');
+Object.assign(hub.style,{left:HUB.x+'px',top:HUB.y+'px',width:HUB.r*2+'px',height:HUB.r*2+'px'}); world.appendChild(hub);
+
+// ---------- pan / zoom ----------
+let s=1,tx=0,ty=0,minS=1,coverS=1;
+function limits(){ const W=innerWidth,H=innerHeight; minS=Math.min(W/MW,H/MH); coverS=Math.max(W/MW,H/MH); }
+function clamp(){ const W=innerWidth,H=innerHeight, w=MW*s,h=MH*s;
+  tx = w<=W ? (W-w)/2 : Math.min(0,Math.max(W-w,tx)); ty = h<=H ? (H-h)/2 : Math.min(0,Math.max(H-h,ty)); }
+function apply(){ clamp(); world.style.transform=`translate(${tx}px,${ty}px) scale(${s})`; }
+function zoomAt(f,cx,cy){ const ns=Math.min(coverS*5,Math.max(minS,s*f)); tx=cx-(cx-tx)*ns/s; ty=cy-(cy-ty)*ns/s; s=ns; apply(); }
+function fit(){ limits(); const W=innerWidth,H=innerHeight; s = W/H < 1 ? coverS : Math.max(minS, Math.min(coverS, W/MW*1.0));
+  if (W>=760) s=coverS; tx=W/2-HUB.x*s; ty=H/2-HUB.y*s+ (W<760?20:0); apply(); }
+addEventListener('resize',()=>{ const k=s/coverS; limits(); s=Math.max(minS,coverS*k); apply(); });
+fit();
+
+const P=new Map(); let moved=0, last=null, pinch=null;
+stage.addEventListener('pointerdown',e=>{ stage.setPointerCapture(e.pointerId); P.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0;
+  if(P.size===2){ const [a,b]=[...P.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)}; } stage.classList.add('drag'); });
+stage.addEventListener('pointermove',e=>{ if(!P.has(e.pointerId)) return; const prev=P.get(e.pointerId); const cur={x:e.clientX,y:e.clientY}; P.set(e.pointerId,cur);
+  if(P.size===1){ tx+=cur.x-prev.x; ty+=cur.y-prev.y; moved+=Math.abs(cur.x-prev.x)+Math.abs(cur.y-prev.y); apply(); }
+  else if(P.size===2 && pinch){ const [a,b]=[...P.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    zoomAt(d/pinch.d,mx,my); pinch.d=d; moved+=10; } });
+function up(e){ P.delete(e.pointerId); if(P.size<2) pinch=null; if(!P.size) stage.classList.remove('drag'); }
+stage.addEventListener('pointerup',e=>{ const wasTap = moved<8 && P.size===1; up(e); if(!wasTap) return;
+  const t=document.elementsFromPoint(e.clientX,e.clientY).find(el=>el.classList&&(el.classList.contains('node')||el.classList.contains('hub')));
+  if(!t){ close(); return; } t.classList.contains('hub') ? openHub() : openNode(NODES[+t.dataset.i]); });
+stage.addEventListener('pointercancel',up);
+stage.addEventListener('wheel',e=>{ e.preventDefault(); zoomAt(e.deltaY<0?1.15:1/1.15,e.clientX,e.clientY); },{passive:false});
+document.getElementById('zin').onclick=()=>zoomAt(1.35,innerWidth/2,innerHeight/2);
+document.getElementById('zout').onclick=()=>zoomAt(1/1.35,innerWidth/2,innerHeight/2);
+document.getElementById('zfit').onclick=fit;
+
+// ---------- names toggle ----------
+const tg=document.getElementById('tg');
+tg.onclick=()=>{ const on=document.body.classList.toggle('names'); tg.setAttribute('aria-pressed',on); };
+
+// ---------- sheet ----------
+const hint=document.getElementById('hint'); setTimeout(()=>hint.style.opacity=0,4500);
+function sel(n){ NODES.forEach(m=>m.el.classList.toggle('sel',m===n)); }
+function show(html){ sc.innerHTML=html; sheet.classList.add('open'); hint.style.opacity=0; }
+function close(){ sheet.classList.remove('open'); sel(null); }
+document.getElementById('x').onclick=close;
+function openNode(n){ sel(n);
+  show(`<div class="sh-head"><div class="sh-logo"><img src="${n.logo}" alt=""></div><div><small>${n.co}</small><h2>${n.work}</h2></div></div>
+  <dl class="kv"><dt>المقاول</dt><dd>${n.con}</dd><dt>رقم التصريح</dt><dd>${n.permit}</dd><dt>آخر زيارة</dt><dd>اليوم ${n.visit}</dd><dt>التوثيق</dt><dd>${n.photos} صورة بالموقع والوقت</dd></dl>
+  <div class="bar"><i style="width:${n.prog}%"></i></div>
+  <div class="st"><i></i>موثّق لدى الأمانة · نسبة الإنجاز ${n.prog}%</div>`); }
+function openHub(){ sel(null); const by={}; NODES.forEach(n=>by[n.co]=(by[n.co]||0)+1); const cons=new Set(NODES.map(n=>n.con)).size;
+  show(`<div class="sh-head"><div class="sh-logo amana">الأمانة</div><div><small>سجل موحّد</small><h2>${NODES.length} عملًا موثّقًا من ${Object.keys(by).length} جهات و${cons} مقاولًا</h2></div></div>
+  <div class="ents">${Object.entries(by).map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join('')}</div>
+  <div class="st"><i></i>كل عمل مرتبط بتصريحه وصوره الموثّقة</div>`); }
+addEventListener('keydown',e=>{ if(e.key==='Escape') close(); });
+</script>
+</body>
+</html>
